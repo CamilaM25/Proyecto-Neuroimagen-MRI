@@ -1,0 +1,32 @@
+# =============================================================================
+# Proyecto Neuroimagen MRI 20261
+# Pre-Post rehabilitation fMRI data of post-stroke patients
+# =============================================================================
+#
+# Dependencias Python para el pipeline completo:
+#   1. Preprocesamiento (fMRIPrep vía Docker)
+#   2. Post-procesamiento (Smoothing, Denoising, Extracción de series temporales)
+#
+# Instalación:
+#   pip install -r requirements.txt
+#
+# Requisito adicional (no Python):
+#   - Docker Desktop (https://www.docker.com/products/docker-desktop/)
+#     Para ejecutar fMRIPrep: nipreps/fmriprep:24.1.1
+#   - FreeSurfer license.txt (https://surfer.nmr.mgh.harvard.edu/registration.html)
+#
+# =============================================================================
+
+# --- Neuroimagen ---
+nilearn>=0.13.0
+nibabel>=5.0.0
+dipy>=1.10.0
+
+# --- Computación científica ---
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# --- Visualización ---
+matplotlib>=3.7.0

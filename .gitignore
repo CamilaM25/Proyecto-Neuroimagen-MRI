@@ -1,0 +1,56 @@
+# =============================================================================
+# .gitignore — Proyecto Neuroimagen MRI 20261
+# =============================================================================
+
+# --- Archivos de neuroimagen (muy grandes) ---
+*.nii
+*.nii.gz
+*.gii
+*.surf.gii
+
+# --- Datos BIDS originales (descargar desde OpenNeuro) ---
+datos_originales/
+
+# --- Preprocesamiento fMRIPrep (regenerable) ---
+preprocesamiento/sub-*/
+preprocesamiento/logs/
+preprocesamiento/lesion_check/
+preprocesamiento/*.html
+
+# --- Archivos intermedios de fMRIPrep ---
+work/
+
+# --- Conectividad: solo conservar CSV, excluir NIfTI ---
+conn/**/*.nii.gz
+
+# --- Cache de nilearn ---
+nilearn_cache/
+
+# --- ICA (aún no generado) ---
+ica/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# --- FreeSurfer license ---
+license.txt
