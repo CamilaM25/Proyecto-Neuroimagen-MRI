@@ -61,6 +61,152 @@ OpenNeuro/
 
 ---
 
+## Guía de Scripts (para explicar el código)
+
+Esta sección resume cada script y archivo clave en formato corto para exposición:
+qué hace, qué necesita y qué produce.
+
+### 1) run_fmriprep.sh
+
+- **Objetivo:** Ejecutar el preprocesamiento fMRIPrep para todos los sujetos detectados en el dataset BIDS.
+- **Entradas:**
+  - Carpeta BIDS en `datos_originales/`
+  - Licencia de FreeSurfer en `license.txt`
+- **Proceso principal:**
+  - Valida estructura BIDS y licencia.
+  - Detecta automáticamente carpetas `sub-*`.
+  - Lanza `docker run` por sujeto con fMRIPrep 24.1.1.
+  - Configura salidas en MNI (`MNI152NLin2009cAsym:res-2`) y espacio anatómico.
+- **Salidas:**
+  - Resultados preprocesados en `preprocesamiento/`
+  - Archivos intermedios en `work/`
+
+### 2) run_conn_all.py
+
+- **Objetivo:** Pipeline principal post-fMRIPrep para conectividad motora en los 23 sujetos.
+- **Entradas:**
+  - BOLD preprocesado en MNI (`preprocesamiento/sub-XX/ses-*/func/*desc-preproc_bold.nii.gz`)
+  - Confounds (`*desc-confounds_timeseries.tsv`)
+  - Máscaras cerebrales (`*desc-brain_mask.nii.gz`)
+- **Proceso principal:**
+  - Smoothing espacial (FWHM = 6 mm).
+  - Denoising (26 regresores: movimiento + CSF + WM) y filtro bandpass (0.008-0.09 Hz).
+  - Extracción de series temporales de 26 ROIs motoras usando atlas AAL.
+  - Guarda resumen grupal y evita reprocesar sujetos completos.
+- **Salidas:**
+  - `conn/sub-XX/*desc-smooth_bold.nii.gz`
+  - `conn/sub-XX/*desc-denoised_bold.nii.gz`
+  - `conn/sub-XX/*timeseries_motor_AAL.csv`
+  - `conn/group_motor_summary.csv`
+
+### 3) fix_missing_subjects.py
+
+- **Objetivo:** Corregir sujetos donde fMRIPrep no dejó BOLD en MNI (sub-15 y sub-18).
+- **Entradas:**
+  - T1w y BOLD en espacio T1w dentro de `preprocesamiento/`
+- **Proceso principal:**
+  - Registro T1w -> MNI con DIPY (afín: traslación/rigido/afín + SyN difeomórfico).
+  - Aplica la transformación a todos los volúmenes BOLD y a la máscara cerebral.
+  - Exporta con nombres compatibles con fMRIPrep para integrarse con el pipeline principal.
+- **Salidas:**
+  - Archivos `*space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz`
+  - Archivos `*space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz`
+
+### 4) check_lesions_mni.py
+
+- **Objetivo:** Verificar que la lesión se preserve al pasar de espacio nativo a MNI.
+- **Entradas:**
+  - T1w nativo y T1w MNI por sujeto
+  - Segmentación y máscara en MNI
+- **Proceso principal:**
+  - Genera figuras comparativas nativo vs MNI (cortes x/y/z).
+  - Superpone segmentación sobre T1w en MNI.
+  - Calcula una métrica simple de asimetría hemisférica para apoyo QC.
+- **Salidas:**
+  - Imágenes PNG en `preprocesamiento/lesion_check/`
+
+### 5) run_nilearn_sub00.py
+
+- **Objetivo:** Script piloto de validación para un solo sujeto (sub-00).
+- **Entradas:**
+  - Salidas fMRIPrep de sub-00 en `preprocesamiento/sub-00/`
+- **Proceso principal:**
+  - Smoothing, denoising y extracción de series AAL completas.
+  - Calcula matrices de conectividad (pre, post y diferencia).
+  - Genera figuras de conectoma y mapas de conectividad.
+- **Salidas:**
+  - Archivos de prueba en `conn/sub-00/` (NIfTI, CSV y PNG)
+
+### 6) run_conn_sub00.m
+
+- **Objetivo:** Referencia en MATLAB/CONN para sub-00 (comparación metodológica).
+- **Entradas:**
+  - BOLD y anatómico preprocesados por fMRIPrep
+  - Máscaras de tejidos (GM, WM, CSF)
+  - Confounds TSV
+- **Proceso principal:**
+  - Configura batch de CONN, importa dos sesiones (pre/post), aplica smoothing y denoising.
+  - Define análisis seed-to-voxel de ejemplo.
+- **Salidas:**
+  - Proyecto y resultados de CONN en `conn/`
+
+### 7) requirements.txt
+
+- **Objetivo:** Fijar dependencias Python del pipeline.
+- **Contenido clave:** Nilearn, Nibabel, DIPY, NumPy, SciPy, Pandas, scikit-learn y Matplotlib.
+- **Uso:** `pip install -r requirements.txt`
+
+### 8) license.txt
+
+- **Objetivo:** Archivo de licencia de FreeSurfer requerido por fMRIPrep.
+- **Nota:** Aunque se use `--fs-no-reconall`, fMRIPrep valida su presencia al iniciar.
+
+### 9) work/
+
+- **Objetivo:** Almacenar archivos temporales/intermedios del flujo fMRIPrep.
+- **Importante:** No es salida final de análisis; puede ocupar mucho espacio.
+
+---
+
+## Resumen para Diapositiva (versión breve)
+
+- `run_fmriprep.sh`: Preprocesa todos los sujetos con fMRIPrep (Docker) y genera salidas en MNI + reportes QC.
+- `run_conn_all.py`: Pipeline principal en Python para smoothing, denoising y extracción de 26 ROIs motoras.
+- `fix_missing_subjects.py`: Corrige casos donde faltó normalización a MNI (sub-15 y sub-18) con registro DIPY.
+- `check_lesions_mni.py`: Control de calidad de lesiones, comparando nativo vs MNI con figuras y asimetría hemisférica.
+- `run_nilearn_sub00.py`: Prueba completa en sub-00 para validar flujo, conectividad y visualizaciones.
+- `run_conn_sub00.m`: Referencia equivalente en MATLAB/CONN para contrastar metodología con Python.
+- `requirements.txt`: Lista de paquetes Python necesarios para ejecutar el pipeline.
+- `license.txt`: Licencia de FreeSurfer requerida por fMRIPrep al inicio.
+- `work/`: Carpeta temporal de fMRIPrep (intermedios de procesamiento, no resultados finales).
+
+---
+
+## Guion de Exposición en 3 Diapositivas
+
+### Diapositiva 1 - Entrada (datos y configuración)
+
+- Se parte del dataset BIDS crudo en `datos_originales/` con sesiones `ses-pre` y `ses-post`.
+- `run_fmriprep.sh` ejecuta fMRIPrep 24.1.1 en Docker con salida en MNI 2 mm y espacio anatómico.
+- Requisitos operativos: `license.txt` (FreeSurfer), dependencias de `requirements.txt` y carpeta temporal `work/`.
+
+### Diapositiva 2 - Proceso (pipeline aplicado)
+
+- Preprocesamiento estándar con fMRIPrep: correcciones anatómicas/funcionales, co-registro, normalización y confounds.
+- Pipeline principal en `run_conn_all.py`: smoothing (6 mm), denoising (26 regresores + bandpass 0.008-0.09 Hz) y extracción de 26 ROIs motoras (AAL).
+- Control de casos especiales y QC:
+  - `fix_missing_subjects.py` corrige sub-15/sub-18 cuando falla la normalización a MNI.
+  - `check_lesions_mni.py` verifica preservación de lesión en MNI.
+  - `run_nilearn_sub00.py` y `run_conn_sub00.m` sirven como validación piloto/referencia metodológica.
+
+### Diapositiva 3 - Salida (productos finales)
+
+- En `preprocesamiento/`: BOLD preprocesado, máscaras, confounds y reportes HTML por sujeto.
+- En `conn/sub-XX/`: imágenes `desc-smooth`, `desc-denoised` y series temporales motoras `timeseries_motor_AAL.csv`.
+- En `conn/`: resumen grupal (`group_motor_summary.csv`) para análisis posterior de conectividad y estadística.
+
+---
+
 ## Pipeline de Procesamiento
 
 ### Paso 1: Preprocesamiento con fMRIPrep
