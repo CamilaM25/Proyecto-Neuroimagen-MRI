@@ -44,6 +44,11 @@ pip install bidscoin
 
 Para instalar dcm2niix, asegúrese de seguir las instrucciones disponibles en la publicación anterior.
 
+```bash
+pip install dcm2niix
+```
+
+
 ### Verificar las instalaciones:
 Asegúrese de que ambas herramientas estén correctamente instaladas ejecutando los siguientes comandos en su terminal:
 
